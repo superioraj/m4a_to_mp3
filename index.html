@@ -1,0 +1,220 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>M4A2MP3.EXE</title>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=VT323&display=swap">
+<script src="https://cdn.jsdelivr.net/npm/lamejs@1.2.1/lame.min.js"></script>
+<style>
+  :root { --g:#33ff33; --gd:#1a8f1a; --bg:#000; --err:#ff5555; }
+  * { box-sizing:border-box; }
+  html, body { margin:0; background:var(--bg); color:var(--g); }
+  body {
+    font-family:"VT323","DungGeunMo","Perfect DOS VGA 437","Consolas","Courier New",monospace;
+    font-size:22px; line-height:1.25;
+    text-shadow:0 0 4px rgba(51,255,51,.6);
+    min-height:100vh;
+  }
+  /* CRT 주사선 효과 */
+  body::after {
+    content:""; position:fixed; inset:0; pointer-events:none;
+    background:repeating-linear-gradient(to bottom, rgba(0,0,0,0) 0, rgba(0,0,0,0) 2px, rgba(0,0,0,.25) 3px);
+  }
+  .wrap { max-width:860px; margin:0 auto; padding:24px 16px; }
+  .box { border:3px double var(--g); padding:12px 16px; margin-bottom:16px; }
+  .title { text-align:center; border-bottom:3px double var(--g); margin:-12px -16px 12px; padding:6px; background:var(--g); color:#000; text-shadow:none; }
+  p { margin:4px 0; }
+  .dim { color:var(--gd); }
+  .drop { border:2px dashed var(--g); padding:28px 12px; text-align:center; cursor:pointer; }
+  .drop.over, .drop:hover { background:var(--g); color:#000; text-shadow:none; }
+  .opts { display:flex; flex-wrap:wrap; gap:24px; margin-top:14px; }
+  label { display:flex; gap:8px; align-items:center; }
+  select, button {
+    font:inherit; color:var(--g); background:#000; border:2px solid var(--g);
+    padding:2px 10px; border-radius:0; text-shadow:inherit; cursor:pointer;
+  }
+  button:hover:not(:disabled), select:hover { background:var(--g); color:#000; text-shadow:none; }
+  button:disabled { color:var(--gd); border-color:var(--gd); cursor:not-allowed; }
+  button:focus-visible, select:focus-visible, .drop:focus-visible { outline:2px dotted var(--g); outline-offset:3px; }
+  .actions { display:flex; gap:14px; margin-top:14px; flex-wrap:wrap; }
+  .item { padding:8px 0; border-top:1px dashed var(--gd); }
+  .item:first-child { border-top:none; }
+  .row { display:flex; justify-content:space-between; gap:10px; flex-wrap:wrap; }
+  .name { word-break:break-all; }
+  .bar { font-family:inherit; white-space:pre; overflow:hidden; }
+  a.dl { color:#000; background:var(--g); padding:0 10px; text-decoration:none; text-shadow:none; }
+  a.dl:hover { background:#000; color:var(--g); outline:2px solid var(--g); }
+  .err { color:var(--err); text-shadow:0 0 4px rgba(255,85,85,.6); }
+  .cursor { display:inline-block; width:12px; height:20px; background:var(--g); vertical-align:middle; animation:blink 1s steps(1) infinite; }
+  @keyframes blink { 50% { opacity:0; } }
+</style>
+</head>
+<body>
+<div class="wrap">
+  <p>C:\AUDIO&gt; M4A2MP3.EXE</p>
+  <p class="dim">M4A to MP3 Converter Version 1.0</p>
+  <p class="dim">(C) 1986 LearnMore Software. All rights reserved.</p>
+  <br>
+
+  <div class="box">
+    <div class="title">[ 파일 선택 ]</div>
+    <div class="drop" id="drop" tabindex="0" role="button" aria-label="파일 선택">
+      &gt; M4A 파일을 여기에 끌어다 놓거나 [ENTER] 또는 클릭하여 선택_
+      <input type="file" id="file" accept=".m4a,audio/mp4,audio/x-m4a,audio/aac" multiple hidden>
+    </div>
+
+    <div class="opts">
+      <label for="bitrate">BITRATE :
+        <select id="bitrate">
+          <option value="320" selected>320 KBPS (최고 음질)</option>
+          <option value="256">256 KBPS</option>
+          <option value="192">192 KBPS</option>
+        </select>
+      </label>
+      <label for="rate">SAMPLE RATE :
+        <select id="rate">
+          <option value="44100" selected>44.1 KHZ (음악)</option>
+          <option value="48000">48 KHZ (영상/녹음)</option>
+        </select>
+      </label>
+    </div>
+
+    <div class="actions">
+      <button type="button" id="start" disabled>[ F1 ] 변환 시작</button>
+      <button type="button" id="clear">[ F2 ] 목록 비우기</button>
+    </div>
+  </div>
+
+  <div class="box">
+    <div class="title">[ 작업 목록 ]</div>
+    <div id="list" aria-live="polite"><p class="dim">C:\AUDIO&gt; 선택된 파일 없음 <span class="cursor"></span></p></div>
+  </div>
+
+  <div class="box dim">
+    <div class="title">[ README.TXT ]</div>
+    <p>* MP3는 손실 압축 포맷이므로 완전한 무손실 변환은 불가능합니다.</p>
+    <p>* 원본을 PCM으로 디코딩 후 MP3 최고 규격(320 KBPS, 스테레오)으로 인코딩합니다.</p>
+    <p>* 샘플레이트는 원본과 동일하게 맞추십시오.</p>
+    <p>* 파일은 서버로 전송되지 않으며, 최초 1회 인터넷 연결이 필요합니다.</p>
+  </div>
+</div>
+
+<script>
+(() => {
+  const $ = id => document.getElementById(id);
+  const drop = $('drop'), fileInput = $('file'), list = $('list'), startBtn = $('start');
+  const BAR_LEN = 30;
+  let files = [], busy = false;
+
+  const fmtSize = b => b > 1048576 ? (b / 1048576).toFixed(1) + ' MB' : (b / 1024).toFixed(0) + ' KB';
+  const fmtTime = s => `${Math.floor(s / 60)}:${String(Math.floor(s % 60)).padStart(2, '0')}`;
+  const drawBar = p => {
+    const n = Math.round(Math.max(0, Math.min(1, p)) * BAR_LEN);
+    return '[' + '█'.repeat(n) + '░'.repeat(BAR_LEN - n) + '] ' + String(Math.round(p * 100)).padStart(3, ' ') + '%';
+  };
+
+  function addFiles(fl) {
+    for (const f of fl) {
+      if (/\.(m4a|mp4|aac)$/i.test(f.name) || /audio\/(mp4|x-m4a|aac)/.test(f.type)) files.push({ file: f, el: null });
+    }
+    render();
+  }
+
+  function render() {
+    list.innerHTML = '';
+    if (!files.length) {
+      list.innerHTML = '<p class="dim">C:\\AUDIO&gt; 선택된 파일 없음 <span class="cursor"></span></p>';
+      startBtn.disabled = true; return;
+    }
+    files.forEach((item, i) => {
+      const d = document.createElement('div');
+      d.className = 'item';
+      d.innerHTML = `<div class="row"><div><span class="name"></span></div><div class="act"></div></div>
+        <div class="meta dim"></div><div class="bar">${drawBar(0)}</div>`;
+      d.querySelector('.name').textContent = `${String(i + 1).padStart(2, '0')}. ${item.file.name.toUpperCase()}`;
+      d.querySelector('.meta').textContent = `   ${fmtSize(item.file.size)} ... 대기 중`;
+      item.el = d;
+      list.appendChild(d);
+    });
+    startBtn.disabled = busy;
+  }
+
+  drop.addEventListener('click', () => fileInput.click());
+  drop.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); fileInput.click(); } });
+  fileInput.addEventListener('change', e => { addFiles(e.target.files); fileInput.value = ''; });
+  ['dragenter', 'dragover'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.add('over'); }));
+  ['dragleave', 'drop'].forEach(ev => drop.addEventListener(ev, e => { e.preventDefault(); drop.classList.remove('over'); }));
+  drop.addEventListener('drop', e => addFiles(e.dataTransfer.files));
+  $('clear').addEventListener('click', () => { if (!busy) { files = []; render(); } });
+  document.addEventListener('keydown', e => {
+    if (e.key === 'F1') { e.preventDefault(); if (!startBtn.disabled) startBtn.click(); }
+    if (e.key === 'F2') { e.preventDefault(); $('clear').click(); }
+  });
+
+  function floatTo16(f32) {
+    const out = new Int16Array(f32.length);
+    for (let i = 0; i < f32.length; i++) {
+      const s = Math.max(-1, Math.min(1, f32[i]));
+      out[i] = s < 0 ? s * 0x8000 : s * 0x7FFF;
+    }
+    return out;
+  }
+
+  async function convert(item, bitrate, sampleRate) {
+    const meta = item.el.querySelector('.meta'), bar = item.el.querySelector('.bar'), act = item.el.querySelector('.act');
+    meta.textContent = '   디코딩 중...';
+    const ctx = new (window.AudioContext || window.webkitAudioContext)({ sampleRate });
+    let audio;
+    try { audio = await ctx.decodeAudioData(await item.file.arrayBuffer()); }
+    finally { ctx.close && ctx.close(); }
+
+    const channels = Math.min(audio.numberOfChannels, 2);
+    const left = floatTo16(audio.getChannelData(0));
+    const right = channels === 2 ? floatTo16(audio.getChannelData(1)) : null;
+    const enc = new lamejs.Mp3Encoder(channels, audio.sampleRate, bitrate);
+    const block = 1152, parts = [];
+    meta.textContent = `   인코딩 중... ${fmtTime(audio.duration)} / ${channels === 2 ? 'STEREO' : 'MONO'} / ${audio.sampleRate} HZ`;
+
+    for (let i = 0; i < left.length; i += block) {
+      const l = left.subarray(i, i + block);
+      const buf = right ? enc.encodeBuffer(l, right.subarray(i, i + block)) : enc.encodeBuffer(l);
+      if (buf.length) parts.push(new Uint8Array(buf));
+      if ((i / block) % 400 === 0) {
+        bar.textContent = drawBar(i / left.length);
+        await new Promise(r => setTimeout(r, 0));
+      }
+    }
+    const end = enc.flush();
+    if (end.length) parts.push(new Uint8Array(end));
+
+    const blob = new Blob(parts, { type: 'audio/mpeg' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = item.file.name.replace(/\.[^.]+$/, '') + '.mp3';
+    a.className = 'dl';
+    a.textContent = '[ 다운로드 ]';
+    act.innerHTML = ''; act.appendChild(a);
+    bar.textContent = drawBar(1);
+    meta.textContent = `   완료. ${fmtSize(blob.size)} / ${bitrate} KBPS / ${audio.sampleRate} HZ`;
+  }
+
+  startBtn.addEventListener('click', async () => {
+    if (typeof lamejs === 'undefined') { alert('ERROR: MP3 인코더를 불러오지 못했습니다. 인터넷 연결 확인 후 새로고침하십시오.'); return; }
+    const bitrate = parseInt($('bitrate').value, 10), rate = parseInt($('rate').value, 10);
+    busy = true; startBtn.disabled = true;
+    for (const item of files) {
+      try { await convert(item, bitrate, rate); }
+      catch (e) {
+        console.error(e);
+        const m = item.el.querySelector('.meta');
+        m.className = 'meta err';
+        m.textContent = '   ERROR: 지원되지 않는 형식(ALAC 등)이거나 손상된 파일입니다. Abort, Retry, Fail?';
+      }
+    }
+    busy = false; startBtn.disabled = false;
+  });
+})();
+</script>
+</body>
+</html>
